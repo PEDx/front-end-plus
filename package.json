@@ -1,0 +1,19 @@
+{
+  "name": "front-end-plus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PEDx/front-end-plus.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PEDx/front-end-plus/issues"
+  },
+  "homepage": "https://github.com/PEDx/front-end-plus#readme"
+}
