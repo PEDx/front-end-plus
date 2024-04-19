@@ -4,6 +4,8 @@ exports.FPromise = void 0;
 var FPromise = /** @class */ (function () {
     function FPromise(executor) {
         this.status = 'pending';
+        this.onFulfilledList = [];
+        this.onRejectedList = [];
         try {
             executor(this.onResolve.bind(this), this.onReject.bind(this));
         }
@@ -17,7 +19,9 @@ var FPromise = /** @class */ (function () {
             return;
         this.status = 'fulfilled';
         this.value = value;
-        (_a = this.onFulfilled) === null || _a === void 0 ? void 0 : _a.call(this, value);
+        while (this.onFulfilledList.length) {
+            (_a = this.onFulfilledList.shift()) === null || _a === void 0 ? void 0 : _a(value);
+        }
     };
     FPromise.prototype.onReject = function (reason) {
         var _a;
@@ -25,7 +29,15 @@ var FPromise = /** @class */ (function () {
             return;
         this.status = 'rejected';
         this.reason = reason;
-        (_a = this.onRejected) === null || _a === void 0 ? void 0 : _a.call(this, reason);
+        while (this.onRejectedList.length) {
+            (_a = this.onRejectedList.shift()) === null || _a === void 0 ? void 0 : _a(reason);
+        }
+    };
+    FPromise.resolve = function (value) {
+        return new FPromise(function (resolve) { return resolve(value); });
+    };
+    FPromise.reject = function (reason) {
+        return new FPromise(function (_, reject) { return reject(reason); });
     };
     FPromise.prototype.then = function (onFulfilled, onRejected) {
         onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : function (val) { return val; };
@@ -35,15 +47,16 @@ var FPromise = /** @class */ (function () {
                 : function (reason) {
                     throw reason;
                 };
-        this.onFulfilled = onFulfilled;
-        this.onRejected = onRejected;
         if (this.status === 'fulfilled') {
-            this.onFulfilled(this.value);
+            onFulfilled(this.value);
         }
         if (this.status === 'rejected') {
-            this.onRejected(this.reason);
+            onRejected(this.reason);
         }
-        this.onReject;
+        if (this.status === 'pending') {
+            this.onFulfilledList.push(onFulfilled);
+            this.onRejectedList.push(onRejected);
+        }
         return this;
     };
     FPromise.prototype.catch = function (onRejected) {
@@ -74,3 +87,13 @@ var p22 = new FPromise(function (resolve, reject) {
         reject('失败');
     }, 1000);
 }).then(function (res) { return console.log(res); }, function (err) { return console.log(err); });
+var test2 = new FPromise(function (resolve) {
+    setTimeout(function () {
+        resolve('成功'); // 1秒后输出 成功
+    }, 1000);
+}).then(function (res) { return console.log(res); }, function (err) { return console.log(err); });
+var p33 = new FPromise(function (resolve, reject) {
+    resolve(100);
+})
+    .then(function (res) { return 2 * res; }, function (err) { return console.log(err); })
+    .then(function (res) { return console.log(res); }, function (err) { return console.log(err); });

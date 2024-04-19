@@ -7,8 +7,8 @@ export class FPromise<T> {
   private status: TFPromiseStatus = 'pending';
   private value: T;
   private reason: TFPromiseReason;
-  private onFulfilled?: (value: T) => void;
-  private onRejected?: (reason: TFPromiseReason) => void;
+  private onFulfilledList: ((value: T) => any)[] = [];
+  private onRejectedList: ((reason: TFPromiseReason) => any)[] = [];
   constructor(executor: TExecutor<T>) {
     try {
       executor(this.onResolve.bind(this), this.onReject.bind(this));
@@ -21,13 +21,24 @@ export class FPromise<T> {
     if (this.status !== 'pending') return;
     this.status = 'fulfilled';
     this.value = value;
-    this.onFulfilled?.(value);
+    while (this.onFulfilledList.length) {
+      this.onFulfilledList.shift()?.(value);
+    }
   }
   private onReject(reason: TFPromiseReason) {
     if (this.status !== 'pending') return;
     this.status = 'rejected';
     this.reason = reason;
-    this.onRejected?.(reason);
+    while (this.onRejectedList.length) {
+      this.onRejectedList.shift()?.(reason);
+    }
+  }
+
+  static resolve<T>(value: T) {
+    return new FPromise<T>((resolve) => resolve(value));
+  }
+  static reject<T>(reason: T) {
+    return new FPromise<T>((_, reject) => reject(reason));
   }
 
   public then(onFulfilled?: (value: T) => void, onRejected?: (reason: TFPromiseReason) => void) {
@@ -39,19 +50,22 @@ export class FPromise<T> {
             throw reason;
           };
 
-    this.onFulfilled = onFulfilled;
-    this.onRejected = onRejected;
-
     if (this.status === 'fulfilled') {
-      this.onFulfilled(this.value);
+      onFulfilled(this.value);
     }
     if (this.status === 'rejected') {
-      this.onRejected(this.reason);
+      onRejected(this.reason);
     }
-    this.onReject;
+    if (this.status === 'pending') {
+      this.onFulfilledList.push(onFulfilled);
+      this.onRejectedList.push(onRejected);
+    }
 
-    return this;
+    return new FPromise((resolve, reject) => {
+
+    });
   }
+
   public catch(onRejected?: (reason: TFPromiseReason) => void) {
     this.then(undefined, onRejected);
   }
@@ -89,3 +103,24 @@ const p22 = new FPromise((resolve, reject) => {
   (res) => console.log(res),
   (err) => console.log(err),
 );
+
+const test2 = new FPromise((resolve) => {
+  setTimeout(() => {
+    resolve('成功'); // 1秒后输出 成功
+  }, 1000);
+}).then(
+  (res) => console.log(res),
+  (err) => console.log(err),
+);
+
+const p33 = new FPromise<number>((resolve, reject) => {
+  resolve(100);
+})
+  .then(
+    (res) => 2 * res,
+    (err) => console.log(err),
+  )
+  .then(
+    (res) => console.log(res),
+    (err) => console.log(err),
+  );
